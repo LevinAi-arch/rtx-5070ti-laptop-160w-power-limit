@@ -1195,11 +1195,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         g_combo=CreateWindowW(WC_COMBOBOXW,L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP|CBS_DROPDOWNLIST|WS_VSCROLL,0,0,0,0,hwnd,(HMENU)1001,nullptr,nullptr);
         UiComboMessage(g_combo,CB_ADDSTRING,0,(LPARAM)L"Detecting GPU / OEM baseline...");
         UiComboMessage(g_combo,CB_SETCURSEL,0,0);UiFont(g_combo);
-        g_apply=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_DEFPUSHBUTTON,0,0,0,0,hwnd,(HMENU)1002,nullptr,nullptr);
-        g_restore=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP,0,0,0,0,hwnd,(HMENU)1003,nullptr,nullptr);
-        g_refresh=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP,0,0,0,0,hwnd,(HMENU)1004,nullptr,nullptr);
-        g_restart=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP,0,0,0,0,hwnd,(HMENU)1005,nullptr,nullptr);
-        g_driverHelp=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP,0,0,0,0,hwnd,(HMENU)1006,nullptr,nullptr);
+        g_apply=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_OWNERDRAW,0,0,0,0,hwnd,(HMENU)1002,nullptr,nullptr);
+        g_restore=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_OWNERDRAW,0,0,0,0,hwnd,(HMENU)1003,nullptr,nullptr);
+        g_refresh=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_OWNERDRAW,0,0,0,0,hwnd,(HMENU)1004,nullptr,nullptr);
+        g_restart=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_OWNERDRAW,0,0,0,0,hwnd,(HMENU)1005,nullptr,nullptr);
+        g_driverHelp=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_OWNERDRAW,0,0,0,0,hwnd,(HMENU)1006,nullptr,nullptr);
         for(HWND control:{g_apply,g_restore,g_refresh,g_restart,g_driverHelp})UiFont(control);
         UiSetText(g_apply,L"Apply");UiSetText(g_restore,L"Restore OEM");UiSetText(g_refresh,L"Refresh");
         UiSetText(g_restart,L"Restart Nvpwr driver");UiSetText(g_driverHelp,L"Driver mode help");
@@ -1212,9 +1212,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             UiFont(g_tuneEdit[i]);
             g_tuneRange[i]=label(L"N/A");
         }
-        g_tuneApply=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP,0,0,0,0,hwnd,(HMENU)1100,nullptr,nullptr);
-        g_tuneReset=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP,0,0,0,0,hwnd,(HMENU)1101,nullptr,nullptr);
-        g_restartNvidia=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP,0,0,0,0,hwnd,(HMENU)1007,nullptr,nullptr);
+        g_tuneApply=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_OWNERDRAW,0,0,0,0,hwnd,(HMENU)1100,nullptr,nullptr);
+        g_tuneReset=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_OWNERDRAW,0,0,0,0,hwnd,(HMENU)1101,nullptr,nullptr);
+        g_restartNvidia=CreateWindowW(L"BUTTON",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_OWNERDRAW,0,0,0,0,hwnd,(HMENU)1007,nullptr,nullptr);
         UiFont(g_tuneApply);UiFont(g_tuneReset);UiFont(g_restartNvidia);
         UiSetText(g_tuneApply,L"Apply tuning");UiSetText(g_tuneReset,L"Reset tuning");UiSetText(g_restartNvidia,L"Restart NVIDIA device");
         EnableWindow(g_tuneApply,FALSE);EnableWindow(g_tuneReset,FALSE);
@@ -1416,31 +1416,149 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         auto limits=reinterpret_cast<MINMAXINFO*>(lParam);
         limits->ptMinTrackSize.x=UiScale(980);limits->ptMinTrackSize.y=UiScale(960);return 0;
     }
-    case WM_PAINT: {
-        PAINTSTRUCT ps{};HDC dc=BeginPaint(hwnd,&ps);
-        RECT rect{};GetClientRect(hwnd,&rect);FillRect(dc,&rect,g_uiBackground);
-        int width=MulDiv(rect.right,96,g_uiDpi),cardWidth=(width-80)/3;
-        for(int i=0;i<3;++i) {
-            int left=30+i*(cardWidth+10);
-            RECT cardRect{UiScale(left),UiScale(158),UiScale(left+cardWidth),UiScale(282)};
-            FillRect(dc,&cardRect,g_uiCard);
+    case WM_DRAWITEM: {
+        auto dis = reinterpret_cast<DRAWITEMSTRUCT*>(lParam);
+        if (dis && dis->CtlType == ODT_BUTTON) {
+            bool isApply = (dis->CtlID == 1002);
+            bool isTuneApply = (dis->CtlID == 1100);
+            bool isDanger = (dis->CtlID == 1003 || dis->CtlID == 1101);
+            bool isPressed = (dis->itemState & ODS_SELECTED) != 0;
+            bool isDisabled = (dis->itemState & ODS_DISABLED) != 0;
+
+            COLORREF bg, border, text;
+            if (isDisabled) {
+                bg = RGB(20, 26, 36);
+                border = RGB(34, 44, 60);
+                text = RGB(80, 95, 115);
+            } else if (isApply) {
+                bg = isPressed ? RGB(95, 150, 0) : RGB(118, 185, 0); // NVIDIA Green
+                border = isPressed ? RGB(118, 185, 0) : RGB(145, 215, 20);
+                text = RGB(12, 20, 8); // Crisp dark contrast on bright green
+            } else if (isTuneApply) {
+                bg = isPressed ? RGB(14, 116, 144) : RGB(2, 132, 199); // Electric cyan
+                border = isPressed ? RGB(2, 132, 199) : RGB(56, 189, 248);
+                text = RGB(255, 255, 255);
+            } else if (isDanger) {
+                bg = isPressed ? RGB(75, 25, 32) : RGB(42, 24, 30); // Subtle crimson
+                border = isPressed ? RGB(180, 50, 60) : RGB(110, 42, 52);
+                text = RGB(252, 165, 165);
+            } else {
+                bg = isPressed ? RGB(36, 46, 64) : RGB(25, 33, 47); // Dark graphite
+                border = isPressed ? RGB(65, 84, 115) : RGB(45, 58, 80);
+                text = RGB(241, 245, 249);
+            }
+
+            HDC dc = dis->hDC;
+            RECT rc = dis->rcItem;
+
+            HBRUSH hBrush = CreateSolidBrush(bg);
+            HPEN hPen = CreatePen(PS_SOLID, 1, border);
+            HGDIOBJ oldBrush = SelectObject(dc, hBrush);
+            HGDIOBJ oldPen = SelectObject(dc, hPen);
+
+            RoundRect(dc, rc.left, rc.top, rc.right, rc.bottom, UiScale(8), UiScale(8));
+
+            SelectObject(dc, oldBrush);
+            SelectObject(dc, oldPen);
+            DeleteObject(hBrush);
+            DeleteObject(hPen);
+
+            wchar_t buf[256]{};
+            GetWindowTextW(dis->hwndItem, buf, 256);
+            SetBkMode(dc, TRANSPARENT);
+            SetTextColor(dc, text);
+            SelectObject(dc, (isApply || isTuneApply) ? g_uiStateFont : g_uiButtonFont);
+            DrawTextW(dc, buf, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            return TRUE;
         }
-        EndPaint(hwnd,&ps);return 0;
+        break;
+    }
+    case WM_PAINT: {
+        PAINTSTRUCT ps{}; HDC dc = BeginPaint(hwnd, &ps);
+        RECT rect{}; GetClientRect(hwnd, &rect);
+        FillRect(dc, &rect, g_uiBackground);
+
+        // Top accent stripe (Iconic NVIDIA GeForce Green)
+        RECT accentBar{ 0, 0, rect.right, UiScale(3) };
+        HBRUSH greenBrush = CreateSolidBrush(kUiNvidiaGreen);
+        FillRect(dc, &accentBar, greenBrush);
+        DeleteObject(greenBrush);
+
+        int width = MulDiv(rect.right, 96, g_uiDpi);
+        int cardWidth = (width - 80) / 3;
+
+        HGDIOBJ oldPen = SelectObject(dc, g_uiCardPen);
+        HGDIOBJ oldBrush = SelectObject(dc, g_uiCard);
+
+        // Draw 3 Summary Cards with rounded corners and subtle border
+        for (int i = 0; i < 3; ++i) {
+            int left = 30 + i * (cardWidth + 10);
+            RoundRect(dc, UiScale(left), UiScale(114), UiScale(left + cardWidth), UiScale(204), UiScale(8), UiScale(8));
+        }
+
+        // Draw Advanced Tuning Container box
+        RoundRect(dc, UiScale(30), UiScale(384), UiScale(width - 30), UiScale(518), UiScale(8), UiScale(8));
+
+        SelectObject(dc, oldBrush);
+        SelectObject(dc, oldPen);
+
+        EndPaint(hwnd, &ps);
+        return 0;
     }
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
     case WM_CTLCOLORLISTBOX: {
-        HDC dc=reinterpret_cast<HDC>(wParam);HWND control=reinterpret_cast<HWND>(lParam);
-        bool panel=control==g_status || msg==WM_CTLCOLORLISTBOX;
-        for(int i=0;i<6;++i) if(control==g_tuneEdit[i] || control==g_tuneRange[i]) panel=true;
-        COLORREF foreground=RGB(225,232,242);
-        for(int i=0;i<3;++i)if(control==g_summaryLabel[i] || control==g_summaryValue[i] || control==g_summaryHint[i]) {
-            panel=true;if(control!=g_summaryValue[i])foreground=RGB(172,187,207);
+        HDC dc = reinterpret_cast<HDC>(wParam);
+        HWND control = reinterpret_cast<HWND>(lParam);
+
+        bool isConsole = (control == g_status);
+        bool isCardChild = false;
+        for (int i = 0; i < 3; ++i) {
+            if (control == g_summaryLabel[i] || control == g_summaryValue[i] || control == g_summaryHint[i])
+                isCardChild = true;
         }
-        if(control==g_state)foreground=g_uiStateColor;
-        if(control==g_hint || control==g_subtitle || control==g_note || control==g_tuningInfo || control==g_footer)foreground=RGB(170,185,205);
-        SetTextColor(dc,foreground);SetBkColor(dc,panel?kUiCard:kUiBackground);
-        return reinterpret_cast<LRESULT>(panel?g_uiCard:g_uiBackground);
+        bool isTuneBox = false;
+        for (int i = 0; i < 6; ++i) {
+            if (control == g_tuneEdit[i] || control == g_tuneRange[i] || control == g_tuneLabel[i])
+                isTuneBox = true;
+        }
+
+        COLORREF fg = RGB(225, 232, 242);
+        COLORREF bg = kUiBackground;
+        HBRUSH brush = g_uiBackground;
+
+        if (isCardChild || isTuneBox) {
+            bg = kUiCard;
+            brush = g_uiCard;
+        }
+        if (isConsole) {
+            bg = kUiConsoleBg;
+            brush = g_uiConsole;
+            fg = RGB(186, 230, 253);
+        }
+
+        if (control == g_summaryLabel[0] || control == g_summaryLabel[1] || control == g_summaryLabel[2])
+            fg = RGB(148, 163, 184);
+        else if (control == g_summaryValue[0])
+            fg = RGB(56, 189, 248); // Electric cyan active
+        else if (control == g_summaryValue[1])
+            fg = RGB(148, 163, 184); // Neutral OEM
+        else if (control == g_summaryValue[2])
+            fg = RGB(118, 185, 0);   // Target NVIDIA green
+        else if (control == g_summaryHint[0] || control == g_summaryHint[1] || control == g_summaryHint[2])
+            fg = RGB(100, 116, 139);
+        else if (control == g_state)
+            fg = g_uiStateColor;
+        else if (control == g_title)
+            fg = RGB(255, 255, 255);
+        else if (control == g_label || control == g_tuneTitle || control == g_details)
+            fg = RGB(118, 185, 0);   // NVIDIA green section titles
+        else if (control == g_subtitle || control == g_hint || control == g_note || control == g_footer || control == g_tuningInfo)
+            fg = RGB(148, 163, 184);
+
+        SetTextColor(dc, fg);
+        SetBkColor(dc, bg);
+        return reinterpret_cast<LRESULT>(brush);
     }
     case WM_DESTROY:
         LogLine(L"WM_DESTROY: closing GUI/device handle and owned XMG runtime session");

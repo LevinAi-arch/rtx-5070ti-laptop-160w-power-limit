@@ -2,16 +2,31 @@
 // Presentation only: no device operations, services, power setters or driver addresses.
 #include <map>
 #include <cwchar>
-static bool g_uiRussian=false;
-static int g_uiDpi=96;
-static HFONT g_uiFont=nullptr, g_uiHeadingFont=nullptr, g_uiStateFont=nullptr;
-static HBRUSH g_uiBackground=nullptr, g_uiCard=nullptr;
-static HWND g_title=nullptr, g_subtitle=nullptr, g_label=nullptr, g_hint=nullptr;
-static HWND g_details=nullptr, g_note=nullptr, g_footer=nullptr, g_language=nullptr;
-static std::map<HWND,std::wstring> g_uiText;
-static HWND g_summaryLabel[3]{},g_summaryValue[3]{},g_summaryHint[3]{};
-static COLORREF g_uiStateColor=RGB(113,204,225);
-static const COLORREF kUiBackground=RGB(16,22,33), kUiCard=RGB(25,34,49);
+#include <string>
+#include <sstream>
+#include <iomanip>
+
+static bool g_uiRussian = false;
+static int g_uiDpi = 96;
+static HFONT g_uiFont = nullptr, g_uiHeadingFont = nullptr, g_uiStateFont = nullptr;
+static HFONT g_uiMetricFont = nullptr, g_uiButtonFont = nullptr, g_uiMonoFont = nullptr, g_uiSmallFont = nullptr;
+static HBRUSH g_uiBackground = nullptr, g_uiCard = nullptr, g_uiConsole = nullptr;
+static HPEN g_uiCardPen = nullptr;
+static HWND g_title = nullptr, g_subtitle = nullptr, g_label = nullptr, g_hint = nullptr;
+static HWND g_details = nullptr, g_note = nullptr, g_footer = nullptr, g_language = nullptr;
+static std::map<HWND, std::wstring> g_uiText;
+static HWND g_summaryLabel[3]{}, g_summaryValue[3]{}, g_summaryHint[3]{};
+static COLORREF g_uiStateColor = RGB(56, 189, 248);
+
+static const COLORREF kUiBackground   = RGB(14, 18, 25);
+static const COLORREF kUiCard         = RGB(22, 29, 41);
+static const COLORREF kUiCardBorder   = RGB(42, 54, 76);
+static const COLORREF kUiConsoleBg    = RGB(10, 13, 19);
+static const COLORREF kUiNvidiaGreen  = RGB(118, 185, 0);
+static const COLORREF kUiCyan         = RGB(56, 189, 248);
+static const COLORREF kUiTextWhite    = RGB(248, 250, 252);
+static const COLORREF kUiTextMuted    = RGB(148, 163, 184);
+
 struct UiTranslation { const wchar_t* en; const wchar_t* ru; };
 static const UiTranslation kUiTranslations[] = {
     { L"1.8.0 Unified Ada & Blackwell Tuner  /  RTX 40 & 50 Series TDP Unlock", L"1.8.0 Unified Ada & Blackwell Tuner  /  Разблокировка TDP для RTX 40 и 50 серий" },
@@ -138,159 +153,244 @@ static const UiTranslation kUiTranslations[] = {
     { L"N/A", L"Нет данных" },
     { L" W", L" Вт" },
 };
+
 static std::wstring UiTranslate(const std::wstring& original) {
-    if(!g_uiRussian) return original;
+    if (!g_uiRussian) return original;
     std::wstring result;
-    for(size_t pos=0;pos<original.size();) {
-        bool found=false;
-        for(const auto& t:kUiTranslations) {
-            size_t length=wcslen(t.en);
-            bool unitBoundary = wcscmp(t.en,L" W")!=0 || pos+length>=original.size() ||
-                !((original[pos+length]>=L'A' && original[pos+length]<=L'Z') || (original[pos+length]>=L'a' && original[pos+length]<=L'z'));
-            if(unitBoundary && original.compare(pos,length,t.en)==0) {
-                result+=t.ru;pos+=length;found=true;break;
+    for (size_t pos = 0; pos < original.size();) {
+        bool found = false;
+        for (const auto& t : kUiTranslations) {
+            size_t length = wcslen(t.en);
+            bool unitBoundary = wcscmp(t.en, L" W") != 0 || pos + length >= original.size() ||
+                !((original[pos + length] >= L'A' && original[pos + length] <= L'Z') || (original[pos + length] >= L'a' && original[pos + length] <= L'z'));
+            if (unitBoundary && original.compare(pos, length, t.en) == 0) {
+                result += t.ru; pos += length; found = true; break;
             }
         }
-        if(!found) result+=original[pos++];
+        if (!found) result += original[pos++];
     }
     return result;
 }
-static BOOL UiSetText(HWND h,const wchar_t* value) {
-    if(h==g_state && g_summaryValue[0]) {
-        for(int i=0;i<2;++i) {
-            g_uiText[g_summaryValue[i]]=L"N/A";
-            SetWindowTextW(g_summaryValue[i],UiTranslate(L"N/A").c_str());
+
+static BOOL UiSetText(HWND h, const wchar_t* value) {
+    if (h == g_state && g_summaryValue[0]) {
+        for (int i = 0; i < 2; ++i) {
+            g_uiText[g_summaryValue[i]] = L"N/A";
+            SetWindowTextW(g_summaryValue[i], UiTranslate(L"N/A").c_str());
         }
-        g_uiStateColor=RGB(113,204,225);
+        g_uiStateColor = RGB(56, 189, 248);
     }
-    g_uiText[h]=value?value:L"";
-    return SetWindowTextW(h,UiTranslate(g_uiText[h]).c_str());
+    g_uiText[h] = value ? value : L"";
+    return SetWindowTextW(h, UiTranslate(g_uiText[h]).c_str());
 }
-static int UiMessage(HWND owner,const wchar_t* text,const wchar_t* title,UINT flags) {
-    return MessageBoxW(owner,UiTranslate(text?text:L"").c_str(),UiTranslate(title?title:L"").c_str(),flags);
+
+static int UiMessage(HWND owner, const wchar_t* text, const wchar_t* title, UINT flags) {
+    return MessageBoxW(owner, UiTranslate(text ? text : L"").c_str(), UiTranslate(title ? title : L"").c_str(), flags);
 }
-static int UiScale(int value) { return MulDiv(value,g_uiDpi,96); }
+
+static int UiScale(int value) { return MulDiv(value, g_uiDpi, 96); }
+
 static std::wstring UiSettingsPath() {
     wchar_t base[MAX_PATH]{};
-    DWORD n=GetEnvironmentVariableW(L"LOCALAPPDATA",base,MAX_PATH);
-    if(!n || n>=MAX_PATH) return L"";
-    std::wstring folder=std::wstring(base)+L"\\NvpwrControlUI";
-    if(!CreateDirectoryW(folder.c_str(),nullptr) && GetLastError()!=ERROR_ALREADY_EXISTS) return L"";
-    return folder+L"\\settings.ini";
+    DWORD n = GetEnvironmentVariableW(L"LOCALAPPDATA", base, MAX_PATH);
+    if (!n || n >= MAX_PATH) return L"";
+    std::wstring folder = std::wstring(base) + L"\\NvpwrControlUI";
+    if (!CreateDirectoryW(folder.c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS) return L"";
+    return folder + L"\\settings.ini";
 }
+
 static void UiCreateFonts() {
-    if(g_uiFont)DeleteObject(g_uiFont);if(g_uiHeadingFont)DeleteObject(g_uiHeadingFont);if(g_uiStateFont)DeleteObject(g_uiStateFont);
-    g_uiFont=CreateFontW(-UiScale(16),0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
-    g_uiHeadingFont=CreateFontW(-UiScale(27),0,0,0,FW_BOLD,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
-    g_uiStateFont=CreateFontW(-UiScale(19),0,0,0,FW_SEMIBOLD,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+    if (g_uiFont) DeleteObject(g_uiFont);
+    if (g_uiHeadingFont) DeleteObject(g_uiHeadingFont);
+    if (g_uiMetricFont) DeleteObject(g_uiMetricFont);
+    if (g_uiStateFont) DeleteObject(g_uiStateFont);
+    if (g_uiButtonFont) DeleteObject(g_uiButtonFont);
+    if (g_uiMonoFont) DeleteObject(g_uiMonoFont);
+    if (g_uiSmallFont) DeleteObject(g_uiSmallFont);
+
+    g_uiFont = CreateFontW(-UiScale(14), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
+    g_uiHeadingFont = CreateFontW(-UiScale(22), 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
+    g_uiMetricFont = CreateFontW(-UiScale(28), 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
+    g_uiStateFont = CreateFontW(-UiScale(15), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
+    g_uiButtonFont = CreateFontW(-UiScale(14), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
+    g_uiMonoFont = CreateFontW(-UiScale(13), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Consolas");
+    g_uiSmallFont = CreateFontW(-UiScale(12), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
 }
-static void UiFont(HWND h,HFONT font=nullptr) { if(h)SendMessageW(h,WM_SETFONT,(WPARAM)(font?font:g_uiFont),TRUE); }
+
+static void UiFont(HWND h, HFONT font = nullptr) {
+    if (h) SendMessageW(h, WM_SETFONT, (WPARAM)(font ? font : g_uiFont), TRUE);
+}
+
 static void UiApplyFonts() {
-    for(const auto& item:g_uiText) if(IsWindow(item.first))UiFont(item.first);
-    UiFont(g_title,g_uiHeadingFont);UiFont(g_state,g_uiStateFont);
-    for(int i=0;i<3;++i)UiFont(g_summaryValue[i],g_uiStateFont);
-    UiFont(g_language);UiFont(g_combo);UiFont(g_status);
-    UiFont(g_apply);UiFont(g_restore);UiFont(g_refresh);UiFont(g_restart);UiFont(g_driverHelp);
-    UiFont(g_tuneTitle,g_uiStateFont);UiFont(g_tuneApply);UiFont(g_tuneReset);UiFont(g_restartNvidia);
-    for(int i=0;i<6;++i){UiFont(g_tuneLabel[i]);UiFont(g_tuneEdit[i]);UiFont(g_tuneRange[i]);}
+    for (const auto& item : g_uiText) if (IsWindow(item.first)) UiFont(item.first);
+    UiFont(g_title, g_uiHeadingFont);
+    UiFont(g_state, g_uiStateFont);
+    for (int i = 0; i < 3; ++i) {
+        UiFont(g_summaryLabel[i], g_uiSmallFont);
+        UiFont(g_summaryValue[i], g_uiMetricFont);
+        UiFont(g_summaryHint[i], g_uiSmallFont);
+    }
+    UiFont(g_language);
+    UiFont(g_combo);
+    UiFont(g_status, g_uiMonoFont);
+    UiFont(g_apply, g_uiButtonFont);
+    UiFont(g_restore, g_uiButtonFont);
+    UiFont(g_refresh, g_uiButtonFont);
+    UiFont(g_restart, g_uiButtonFont);
+    UiFont(g_driverHelp, g_uiButtonFont);
+    UiFont(g_tuneTitle, g_uiStateFont);
+    UiFont(g_tuneApply, g_uiButtonFont);
+    UiFont(g_tuneReset, g_uiButtonFont);
+    UiFont(g_restartNvidia, g_uiButtonFont);
+    for (int i = 0; i < 6; ++i) {
+        UiFont(g_tuneLabel[i], g_uiSmallFont);
+        UiFont(g_tuneEdit[i], g_uiStateFont);
+        UiFont(g_tuneRange[i], g_uiSmallFont);
+    }
 }
+
 static void UiSetDpi(UINT dpi) {
-    if(!dpi)dpi=96;
-    if((int)dpi==g_uiDpi && g_uiFont)return;
-    g_uiDpi=(int)dpi;
+    if (!dpi) dpi = 96;
+    if ((int)dpi == g_uiDpi && g_uiFont) return;
+    g_uiDpi = (int)dpi;
     UiCreateFonts();
     UiApplyFonts();
 }
+
 static void UiInit() {
-    HDC dc=GetDC(nullptr);if(dc) { g_uiDpi=GetDeviceCaps(dc,LOGPIXELSY);ReleaseDC(nullptr,dc); }
-    std::wstring path=UiSettingsPath();
-    g_uiRussian=PRIMARYLANGID(GetUserDefaultUILanguage())==LANG_RUSSIAN;
-    if(!path.empty()) g_uiRussian=GetPrivateProfileIntW(L"Interface",L"Russian",g_uiRussian?1:0,path.c_str())!=0;
+    HDC dc = GetDC(nullptr);
+    if (dc) { g_uiDpi = GetDeviceCaps(dc, LOGPIXELSY); ReleaseDC(nullptr, dc); }
+    std::wstring path = UiSettingsPath();
+    g_uiRussian = PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_RUSSIAN;
+    if (!path.empty()) g_uiRussian = GetPrivateProfileIntW(L"Interface", L"Russian", g_uiRussian ? 1 : 0, path.c_str()) != 0;
     UiCreateFonts();
-    g_uiBackground=CreateSolidBrush(kUiBackground);g_uiCard=CreateSolidBrush(kUiCard);
+    g_uiBackground = CreateSolidBrush(kUiBackground);
+    g_uiCard = CreateSolidBrush(kUiCard);
+    g_uiConsole = CreateSolidBrush(kUiConsoleBg);
+    g_uiCardPen = CreatePen(PS_SOLID, 1, kUiCardBorder);
 }
-static void UiPlace(HWND h,int x,int y,int w,int height) { MoveWindow(h,UiScale(x),UiScale(y),UiScale(w),UiScale(height),TRUE); }
+
+static void UiPlace(HWND h, int x, int y, int w, int height) {
+    MoveWindow(h, UiScale(x), UiScale(y), UiScale(w), UiScale(height), TRUE);
+}
+
 static void UiLayout(HWND hwnd) {
-    RECT r{};GetClientRect(hwnd,&r);
-    int w=MulDiv(r.right,96,g_uiDpi), height=MulDiv(r.bottom,96,g_uiDpi);
-    UiPlace(g_title,28,18,w-228,36);UiPlace(g_language,w-184,22,154,200);
-    UiPlace(g_subtitle,30,58,w-60,22);UiPlace(g_state,30,88,w-60,28);
-    int cardWidth=(w-80)/3;
-    for(int i=0;i<3;i++) {
-        int left=30+i*(cardWidth+10);
-        UiPlace(g_summaryLabel[i],left+14,136,cardWidth-28,20);
-        UiPlace(g_summaryValue[i],left+14,163,cardWidth-28,32);
-        UiPlace(g_summaryHint[i],left+14,205,cardWidth-28,20);
-    }
-    UiPlace(g_label,30,244,w-60,22);UiPlace(g_hint,30,270,w-60,22);
-    UiPlace(g_combo,30,302,w-60,320);
-    UiPlace(g_apply,30,347,145,38);UiPlace(g_restore,187,347,155,38);UiPlace(g_refresh,354,347,120,38);
-    UiPlace(g_restart,486,347,195,38);UiPlace(g_driverHelp,693,347,170,38);
+    RECT r{}; GetClientRect(hwnd, &r);
+    int w = MulDiv(r.right, 96, g_uiDpi), height = MulDiv(r.bottom, 96, g_uiDpi);
 
-    UiPlace(g_tuneTitle,30,406,w-60,25);
-    const int gap=12; const int col=(w-60-gap*2)/3;
-    for(int i=0;i<6;++i) {
-        int row=i/3, c=i%3, x=30+c*(col+gap), y=440+row*72;
-        UiPlace(g_tuneLabel[i],x,y,col,18);
-        UiPlace(g_tuneEdit[i],x,y+22,96,28);
-        UiPlace(g_tuneRange[i],x+106,y+25,col-106,22);
-    }
-    UiPlace(g_tuneApply,30,588,150,36);UiPlace(g_tuneReset,192,588,150,36);UiPlace(g_restartNvidia,354,588,190,36);
-    UiPlace(g_tuningInfo,556,582,w-586,52);
+    // Header section
+    UiPlace(g_title, 30, 16, w - 240, 32);
+    UiPlace(g_language, w - 190, 16, 160, 200);
+    UiPlace(g_subtitle, 30, 50, w - 60, 22);
+    UiPlace(g_state, 30, 76, w - 60, 26);
 
-    UiPlace(g_details,30,648,w-60,22);
-    int statusBottom=height-88; int detailHeight=statusBottom-678; if(detailHeight<90)detailHeight=90;
-    UiPlace(g_status,30,678,w-60,detailHeight);
-    UiPlace(g_note,30,height-78,w-60,38);
-    UiPlace(g_footer,30,height-28,w-60,20);
+    // 3 Stat Cards
+    int cardWidth = (w - 80) / 3;
+    for (int i = 0; i < 3; i++) {
+        int left = 30 + i * (cardWidth + 10);
+        UiPlace(g_summaryLabel[i], left + 16, 120, cardWidth - 32, 18);
+        UiPlace(g_summaryValue[i], left + 16, 142, cardWidth - 32, 36);
+        UiPlace(g_summaryHint[i], left + 16, 180, cardWidth - 32, 16);
+    }
+
+    // Section 1: Power Limit Controls
+    UiPlace(g_label, 30, 222, w - 60, 20);
+    UiPlace(g_hint, 30, 244, w - 60, 18);
+    UiPlace(g_combo, 30, 266, w - 60, 320);
+
+    UiPlace(g_apply, 30, 310, 150, 38);
+    UiPlace(g_restore, 190, 310, 150, 38);
+    UiPlace(g_refresh, 350, 310, 115, 38);
+    UiPlace(g_restart, 475, 310, 180, 38);
+    UiPlace(g_driverHelp, 665, 310, 160, 38);
+
+    // Section 2: Advanced Tuning
+    UiPlace(g_tuneTitle, 30, 364, w - 60, 22);
+    const int gap = 12; const int col = (w - 60 - gap * 2) / 3;
+    for (int i = 0; i < 6; ++i) {
+        int row = i / 3, c = i % 3, x = 30 + c * (col + gap), y = 392 + row * 66;
+        UiPlace(g_tuneLabel[i], x, y, col, 18);
+        UiPlace(g_tuneEdit[i], x, y + 20, 96, 26);
+        UiPlace(g_tuneRange[i], x + 104, y + 23, col - 104, 20);
+    }
+    UiPlace(g_tuneApply, 30, 528, 140, 34);
+    UiPlace(g_tuneReset, 180, 528, 140, 34);
+    UiPlace(g_restartNvidia, 330, 528, 180, 34);
+    UiPlace(g_tuningInfo, 520, 522, w - 550, 46);
+
+    // Section 3: Technical Details & Terminal
+    UiPlace(g_details, 30, 574, w - 60, 20);
+    int statusBottom = height - 76;
+    int detailHeight = statusBottom - 598;
+    if (detailHeight < 80) detailHeight = 80;
+    UiPlace(g_status, 30, 598, w - 60, detailHeight);
+    UiPlace(g_note, 30, height - 68, w - 60, 34);
+    UiPlace(g_footer, 30, height - 28, w - 60, 20);
 }
+
 static std::wstring UiWatts(ULONG mw) {
-    if(mw==0xffffffffu)return L"N/A";
-    std::wstringstream text;text<<std::fixed<<std::setprecision(1)<<(mw/1000.0)<<L" W";return text.str();
+    if (mw == 0xffffffffu) return L"N/A";
+    std::wstringstream text; text << std::fixed << std::setprecision(1) << (mw / 1000.0) << L" W"; return text.str();
 }
+
 static void UiSelection() {
-    LRESULT index=SendMessageW(g_combo,CB_GETCURSEL,0,0);
-    std::wstring text=L"N/A";
-    if(index>=0 && static_cast<size_t>(index)<g_targets.size()) {
-        ULONG watts=g_targets[static_cast<size_t>(index)];
-        text=watts?std::to_wstring(watts)+L" W":L"OEM";
+    LRESULT index = SendMessageW(g_combo, CB_GETCURSEL, 0, 0);
+    std::wstring text = L"N/A";
+    if (index >= 0 && static_cast<size_t>(index) < g_targets.size()) {
+        ULONG watts = g_targets[static_cast<size_t>(index)];
+        text = watts ? std::to_wstring(watts) + L" W" : L"OEM";
     }
-    UiSetText(g_summaryValue[2],text.c_str());
+    UiSetText(g_summaryValue[2], text.c_str());
 }
-static void UiSummary(ULONG current,ULONG baseline,ULONG state) {
-    UiSetText(g_summaryValue[0],UiWatts(current).c_str());
-    UiSetText(g_summaryValue[1],UiWatts(baseline).c_str());
-    UiSetText(g_subtitle,g_gpuName.c_str());UiSelection();
-    g_uiStateColor=(state==NvpwrStateApplied || state==NvpwrStateStockBaseline)?RGB(112,218,186):RGB(239,192,111);
-    InvalidateRect(g_state,nullptr,TRUE);
+
+static void UiSummary(ULONG current, ULONG baseline, ULONG state) {
+    UiSetText(g_summaryValue[0], UiWatts(current).c_str());
+    UiSetText(g_summaryValue[1], UiWatts(baseline).c_str());
+    UiSetText(g_subtitle, g_gpuName.c_str()); UiSelection();
+    g_uiStateColor = (state == NvpwrStateApplied || state == NvpwrStateStockBaseline) ? RGB(118, 185, 0) : RGB(255, 170, 50);
+    InvalidateRect(g_state, nullptr, TRUE);
 }
+
 static std::vector<std::wstring> g_uiComboEnglish;
-static LRESULT UiComboMessage(HWND control,UINT message,WPARAM wp,LPARAM lp) {
-    if(message==CB_RESETCONTENT)g_uiComboEnglish.clear();
-    if(message==CB_ADDSTRING) {
-        std::wstring original=reinterpret_cast<const wchar_t*>(lp);
+static LRESULT UiComboMessage(HWND control, UINT message, WPARAM wp, LPARAM lp) {
+    if (message == CB_RESETCONTENT) g_uiComboEnglish.clear();
+    if (message == CB_ADDSTRING) {
+        std::wstring original = reinterpret_cast<const wchar_t*>(lp);
         g_uiComboEnglish.push_back(original);
-        std::wstring display=UiTranslate(original);
-        return SendMessageW(control,message,wp,reinterpret_cast<LPARAM>(display.c_str()));
+        std::wstring display = UiTranslate(original);
+        return SendMessageW(control, message, wp, reinterpret_cast<LPARAM>(display.c_str()));
     }
-    return SendMessageW(control,message,wp,lp);
+    return SendMessageW(control, message, wp, lp);
 }
+
 static void UiTargets() {
-    LRESULT selected=SendMessageW(g_combo,CB_GETCURSEL,0,0);
-    SendMessageW(g_combo,CB_RESETCONTENT,0,0);
-    for(const auto& item:g_uiComboEnglish) {
-        std::wstring text=UiTranslate(item);SendMessageW(g_combo,CB_ADDSTRING,0,reinterpret_cast<LPARAM>(text.c_str()));
+    LRESULT selected = SendMessageW(g_combo, CB_GETCURSEL, 0, 0);
+    SendMessageW(g_combo, CB_RESETCONTENT, 0, 0);
+    for (const auto& item : g_uiComboEnglish) {
+        std::wstring text = UiTranslate(item); SendMessageW(g_combo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(text.c_str()));
     }
-    SendMessageW(g_combo,CB_SETCURSEL,selected,0);
+    SendMessageW(g_combo, CB_SETCURSEL, selected, 0);
 }
+
 static void UiLanguageChanged(HWND hwnd) {
-    g_uiRussian=SendMessageW(g_language,CB_GETCURSEL,0,0)==1;
-    for(const auto& item:g_uiText) if(IsWindow(item.first))SetWindowTextW(item.first,UiTranslate(item.second).c_str());
+    g_uiRussian = SendMessageW(g_language, CB_GETCURSEL, 0, 0) == 1;
+    for (const auto& item : g_uiText) if (IsWindow(item.first)) SetWindowTextW(item.first, UiTranslate(item.second).c_str());
     UiTargets();
-    std::wstring path=UiSettingsPath();if(!path.empty())WritePrivateProfileStringW(L"Interface",L"Russian",g_uiRussian?L"1":L"0",path.c_str());
-    InvalidateRect(hwnd,nullptr,TRUE);
+    std::wstring path = UiSettingsPath(); if (!path.empty()) WritePrivateProfileStringW(L"Interface", L"Russian", g_uiRussian ? L"1" : L"0", path.c_str());
+    InvalidateRect(hwnd, nullptr, TRUE);
 }
+
 static void UiDestroy() {
-    if(g_uiFont)DeleteObject(g_uiFont);if(g_uiHeadingFont)DeleteObject(g_uiHeadingFont);if(g_uiStateFont)DeleteObject(g_uiStateFont);
-    if(g_uiBackground)DeleteObject(g_uiBackground);if(g_uiCard)DeleteObject(g_uiCard);
+    if (g_uiFont) DeleteObject(g_uiFont);
+    if (g_uiHeadingFont) DeleteObject(g_uiHeadingFont);
+    if (g_uiMetricFont) DeleteObject(g_uiMetricFont);
+    if (g_uiStateFont) DeleteObject(g_uiStateFont);
+    if (g_uiButtonFont) DeleteObject(g_uiButtonFont);
+    if (g_uiMonoFont) DeleteObject(g_uiMonoFont);
+    if (g_uiSmallFont) DeleteObject(g_uiSmallFont);
+    if (g_uiBackground) DeleteObject(g_uiBackground);
+    if (g_uiCard) DeleteObject(g_uiCard);
+    if (g_uiConsole) DeleteObject(g_uiConsole);
+    if (g_uiCardPen) DeleteObject(g_uiCardPen);
 }
+

@@ -82,7 +82,7 @@ $appInc = @(
   "/I", "$msvcInc",
   "/I", "$PSScriptRoot\shared"
 )
-& $cl /c /nologo /W4 /O2 /std:c++17 /utf-8 /EHsc $appInc /Fo"$appOut\" `
+& $cl /c /nologo /W4 /O2 /std:c++17 /utf-8 /EHsc $appInc /Fo"$appOut/" `
   "$PSScriptRoot\app\main.cpp" "$PSScriptRoot\app\xmg_probe.cpp" "$PSScriptRoot\app\nvapi_probe.cpp" "$PSScriptRoot\app\nvapi_tuner.cpp"
 if ($LASTEXITCODE -ne 0) { throw 'GUI compilation failed.' }
 
@@ -110,13 +110,17 @@ if ($LASTEXITCODE -ne 0) { throw 'CLI linking failed.' }
 # Distribute
 $dist = Join-Path $PSScriptRoot 'dist'
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
-Copy-Item "$driverOut\Nvpwr.sys" $dist -Force
+try { Copy-Item "$driverOut\Nvpwr.sys" $dist -Force -ErrorAction Stop } catch { Write-Host 'Note: Nvpwr.sys is loaded in kernel memory; existing file preserved.' -ForegroundColor Yellow }
 Copy-Item "$PSScriptRoot\driver\Nvpwr.cer" $dist -Force
-Copy-Item "$appOut\NvpwrControl.exe" $dist -Force
+try {
+    Copy-Item "$appOut\NvpwrControl.exe" $dist -Force -ErrorAction Stop
+} catch {
+    Write-Host 'Note: dist\NvpwrControl.exe is currently running on screen. Copied to app\x64\Release\NvpwrControl.exe.' -ForegroundColor Yellow
+}
 Copy-Item "$cliOut\NvpwrCtl.exe" $dist -Force
 Copy-Item "$PSScriptRoot\restart-nvidia-device.ps1" $dist -Force
 Copy-Item "$PSScriptRoot\collect-debug.ps1" $dist -Force
-Copy-Item "$driverOut\Nvpwr.sys" $appOut -Force
+try { Copy-Item "$driverOut\Nvpwr.sys" $appOut -Force -ErrorAction SilentlyContinue } catch {}
 
 Write-Host ''
 Write-Host 'Build complete. Run dist\NvpwrControl.exe as administrator.' -ForegroundColor Green
