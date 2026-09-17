@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "dgSpecHash": "pcpY9woLRHU=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\timmy\\Downloads\\nvidia-power-control\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\driver\\Nvpwr.vcxproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\timmy\\.nuget\\packages\\microsoft.windows.sdk.cpp\\10.0.28000.1721\\microsoft.windows.sdk.cpp.10.0.28000.1721.nupkg.sha512",
+    "C:\\Users\\timmy\\.nuget\\packages\\microsoft.windows.sdk.cpp.x64\\10.0.28000.1721\\microsoft.windows.sdk.cpp.x64.10.0.28000.1721.nupkg.sha512",
+    "C:\\Users\\timmy\\.nuget\\packages\\microsoft.windows.wdk.x64\\10.0.28000.2526\\microsoft.windows.wdk.x64.10.0.28000.2526.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1603",
+      "level": "Warning",
+      "message": "Microsoft.Windows.WDK.x64 10.0.28000.2526 depends on Microsoft.Windows.SDK.CPP.x64 (>= 10.0.28000 && < 10.0.28001) but Microsoft.Windows.SDK.CPP.x64 10.0.28000 was not found. Microsoft.Windows.SDK.CPP.x64 10.0.28000.1721 was resolved instead.",
+      "projectPath": "C:\\Users\\timmy\\Downloads\\nvidia-power-control\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\driver\\Nvpwr.vcxproj",
+      "warningLevel": 1,
+      "filePath": "C:\\Users\\timmy\\Downloads\\nvidia-power-control\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\driver\\Nvpwr.vcxproj",
+      "libraryId": "Microsoft.Windows.SDK.CPP.x64",
+      "targetGraphs": [
+        "native,Version=v0.0",
+        "native,Version=v0.0/win",
+        "native,Version=v0.0/win-arm64",
+        "native,Version=v0.0/win-x64",
+        "native,Version=v0.0/win-x86"
+      ]
+    }
+  ]
+}
