@@ -1,0 +1,66 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\timmy\\Downloads\\nvidia-power-control\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\driver\\Nvpwr.vcxproj": {}
+  },
+  "projects": {
+    "C:\\Users\\timmy\\Downloads\\nvidia-power-control\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\driver\\Nvpwr.vcxproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\timmy\\Downloads\\nvidia-power-control\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\driver\\Nvpwr.vcxproj",
+        "projectName": "Nvpwr",
+        "projectPath": "C:\\Users\\timmy\\Downloads\\nvidia-power-control\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\driver\\Nvpwr.vcxproj",
+        "packagesPath": "C:\\Users\\timmy\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\timmy\\Downloads\\nvidia-power-control\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\NvpwrControl_61692_v1_8_0_unified_blackwell_tuner\\driver\\obj\\",
+        "projectStyle": "PackageReference",
+        "skipContentFileWrite": true,
+        "UsingMicrosoftNETSdk": false,
+        "configFilePaths": [
+          "C:\\Users\\timmy\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "native"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "native": {
+            "framework": "native",
+            "projectReferences": {}
+          }
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "native": {
+          "framework": "native",
+          "dependencies": {
+            "Microsoft.Windows.WDK.x64": {
+              "target": "Package",
+              "version": "[10.0.28000.2526, )"
+            }
+          }
+        }
+      },
+      "runtimes": {
+        "win": {
+          "#import": []
+        },
+        "win-arm64": {
+          "#import": []
+        },
+        "win-x64": {
+          "#import": []
+        },
+        "win-x86": {
+          "#import": []
+        }
+      }
+    }
+  }
+}

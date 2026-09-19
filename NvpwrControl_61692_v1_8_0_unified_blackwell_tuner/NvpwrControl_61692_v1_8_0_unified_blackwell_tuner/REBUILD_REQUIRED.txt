@@ -1,0 +1,8 @@
+This source tree contains NvpwrControl 1.8.0 Unified Blackwell Tuner and must be rebuilt on Windows with MSVC + WDK.
+
+Run PowerShell as Administrator:
+
+Set-ExecutionPolicy -Scope Process Bypass -Force
+.\build.ps1
+
+The source package intentionally does not contain stale prebuilt EXE/SYS binaries.
